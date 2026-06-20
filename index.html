@@ -764,6 +764,7 @@ function dbToPatient(row) {
     visits: row.visits || [],
     photos: row.photos || [],
     painDots: row.pain_dots || {},
+    photoKeys: row.photo_keys || [],
     drawData: row.draw_data || '',
     custom: row.custom || {},
   };
@@ -790,6 +791,7 @@ function patientToDb(p) {
     visits: p.visits || [],
     photos: p.photos || [],
     pain_dots: p.painDots || {},
+    photo_keys: p.photoKeys || [],
     draw_data: p.drawData || '',
     custom: p.custom || {},
     updated_at: new Date().toISOString(),
@@ -1263,25 +1265,50 @@ function renderPhotos(p) {
   `;
 }
 
-function addPhotos(input) {
+async function addPhotos(input) {
   const p = getCurrentPatient();
   if (!p.photos) p.photos = [];
-  Array.from(input.files).forEach(file => {
-    const r = new FileReader();
-    r.onload = async e => {
-      p.photos.push(e.target.result);
-      await sb.upsert('patients', patientToDb(p));
-      renderPhotos(p);
-      showToast('写真を追加しました');
-    };
-    r.readAsDataURL(file);
-  });
+  if (!p.photoKeys) p.photoKeys = [];
+  const files = Array.from(input.files);
+  showToast('アップロード中...');
+  for (const file of files) {
+    const ext = file.name.split('.').pop();
+    const key = p.id + '/' + Date.now() + '.' + ext;
+    // Supabaseストレージにアップロード
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/photos/${key}`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': file.type },
+      body: file
+    });
+    if (res.ok) {
+      const url = `${SUPABASE_URL}/storage/v1/object/public/photos/${key}`;
+      p.photos.push(url);
+      p.photoKeys.push(key);
+    } else {
+      // フォールバック: Base64で保存
+      await new Promise(resolve => {
+        const r = new FileReader();
+        r.onload = e => { p.photos.push(e.target.result); resolve(); };
+        r.readAsDataURL(file);
+      });
+    }
+  }
+  await sb.upsert('patients', patientToDb(p));
+  renderPhotos(p);
+  showToast('写真を追加しました ✓');
 }
 
 async function deletePhoto(idx, e) {
   e.stopPropagation();
   if (!confirm('この写真を削除しますか？')) return;
   const p = getCurrentPatient();
+  // ストレージからも削除
+  if (p.photoKeys && p.photoKeys[idx]) {
+    await fetch(`${SUPABASE_URL}/storage/v1/object/photos/${p.photoKeys[idx]}`, {
+      method: 'DELETE', headers: HEADERS
+    }).catch(()=>{});
+    p.photoKeys.splice(idx, 1);
+  }
   p.photos.splice(idx,1);
   await sb.upsert('patients', patientToDb(p));
   renderPhotos(p);
