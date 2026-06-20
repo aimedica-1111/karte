@@ -942,7 +942,7 @@ function renderBasic(p) {
         <div class="field-grid">
           <div class="field"><label>氏名</label><input type="text" id="f_name" value="${p.name||''}" placeholder="山田 太郎" oninput="document.getElementById('topbarTitle').textContent=this.value||'名称未設定'"></div>
           <div class="field"><label>フリガナ</label><input type="text" id="f_kana" value="${p.kana||''}" placeholder="ヤマダ タロウ"></div>
-          <div class="field"><label>生年月日</label><input type="date" id="f_birthdate" value="${p.birthdate||''}"></div>
+          <div class="field"><label>生年月日 <span style="font-weight:400;color:var(--gray-400)">(例: 1965-03-15)</span></label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="f_birthdate" value="${p.birthdate||''}" placeholder="1965-03-15" oninput="updateAge(this)" style="flex:1"><span id="ageDisplay" style="font-size:13px;color:var(--teal);font-weight:600;white-space:nowrap">${p.birthdate?calcAge(p.birthdate):''}</span></div></div>
           <div class="field">
             <label>性別</label>
             <div class="radio-group" id="genderGroup">
@@ -1383,6 +1383,22 @@ async function addField() {
     const inputs = document.querySelectorAll('.settings-item input');
     if (inputs.length) inputs[inputs.length-1].focus();
   }, 50);
+}
+
+// ===== 年齢計算 =====
+function calcAge(birthdate) {
+  if (!birthdate || birthdate.length < 10) return '';
+  const b = new Date(birthdate);
+  if (isNaN(b)) return '';
+  const today = new Date();
+  let age = today.getFullYear() - b.getFullYear();
+  const m = today.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+  return age >= 0 ? age + '歳' : '';
+}
+function updateAge(el) {
+  const disp = document.getElementById('ageDisplay');
+  if (disp) disp.textContent = calcAge(el.value);
 }
 
 // ===== TOAST =====
