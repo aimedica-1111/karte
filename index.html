@@ -541,7 +541,7 @@
   <main class="main">
     <div class="topbar">
       <div class="topbar-title" id="topbarTitle">患者を選択してください</div>
-      <div class="topbar-actions" id="topbarActions" style="display:none">
+      <div class="topbar-actions" id="topbarActions" style="display:none"><button class="btn btn-ghost" onclick="cleanupEmpty()" title="名称未設定を一括削除">🗑 空カルテ削除</button>
         <button class="btn btn-ghost" onclick="addVisit()">📝 来院記録追加</button>
         <button class="btn btn-primary" onclick="saveKarte()">💾 保存</button>
         <button class="btn btn-danger" onclick="deletePatient()">🗑 削除</button>
@@ -838,6 +838,10 @@ function filterPatients() {
 }
 
 async function newPatient() {
+  // 現在編集中の未保存の空患者があれば使い回す
+  const existing = patients.find(p => !p.name && p.id === currentId);
+  if (existing) { showToast('現在の患者に氏名を入力してください'); return; }
+  if (!confirm('新規患者を登録しますか？')) return;
   const id = 'p' + Date.now();
   const p = { id, name:'', kana:'', birthdate:'', gender:'', zip:'', address:'', phone:'', email:'', emergency:'', complaint:'', history:'', allergy:'', medicine:'', visits:[], photos:[], drawData:'', counsel:'', custom:{}, painDots:{} };
   patients.unshift(p);
@@ -891,6 +895,16 @@ function collectFormData() {
 
 async function saveAll() {
   await sb.setSetting('custom_fields', JSON.stringify(customFields));
+}
+
+async function cleanupEmpty() {
+  const empties = patients.filter(p => !p.name);
+  if (empties.length === 0) { showToast('空のカルテはありません'); return; }
+  if (!confirm(empties.length + '件の名称未設定カルテを削除しますか？')) return;
+  for (const p of empties) await sb.delete('patients', p.id);
+  patients = patients.filter(p => p.name);
+  renderPatientList();
+  showToast(empties.length + '件削除しました ✓');
 }
 
 async function deletePatient() {
