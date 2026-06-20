@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>整体院 電子カルテ</title>
+<style>
+  :root {
+    --teal: #2A7B7B;
+    --teal-light: #3A9B9B;
+    --teal-pale: #E8F4F4;
+    --cream: #FAFAF8;
+    --white: #FFFFFF;
+    --gray-100: #F5F5F3;
+    --gray-200: #E8E8E5;
+    --gray-400: #AEAEAA;
+    --gray-600: #6B6B67;
+    --gray-800: #2C2C2A;
+    --red: #C0392B;
+    --orange: #E67E22;
+    --green: #27AE60;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.13);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-800);
+    height: 100vh;
+    overflow: hidden;
+    font-size: 15px;
+  }
+
+  /* ===== LAYOUT ===== */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 280px;
+    min-width: 280px;
+    height: 100vh;
+    background: var(--white);
+    border-right: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-sm);
+    z-index: 10;
+    overflow: hidden;
+  }
+
+
+
+
+
+
+
+
+
+
+  .sidebar-header {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    cursor: pointer;
+  }
+  .logo-img {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    object-fit: contain;
+    border: 2px dashed var(--teal);
+    display: flex; align-items: center; justify-content: center;
+    background: var(--teal-pale);
+    color: var(--teal);
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  #logoUploadInput { display: none; }
+  .clinic-name { font-size: 16px; font-weight: 700; color: var(--teal); line-height: 1.2; }
+  .clinic-sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+  .search-box {
+    position: relative;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 10px 36px 10px 14px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px;
+    font-size: 14px;
+    background: var(--gray-100);
+    outline: none;
+    transition: border .2s;
+  }
+  .search-box input:focus { border-color: var(--teal); background: var(--white); }
+  .search-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--gray-400); font-size: 15px; }
+
+  .patient-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .patient-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--gray-100);
+    transition: background .15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .patient-item:hover { background: var(--teal-pale); }
+  .patient-item.active { background: var(--teal-pale); border-left: 3px solid var(--teal); }
+  .patient-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--teal); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .patient-info { flex: 1; min-width: 0; }
+  .patient-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .patient-meta { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+  .btn-new {
+    margin: 0;
+    padding: 14px;
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-top: 1px solid var(--teal-light);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .btn-new:hover { background: var(--teal-light); }
+
+  /* ===== MAIN ===== */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .topbar {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .topbar-title { font-size: 17px; font-weight: 700; color: var(--gray-800); }
+  .topbar-actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+  }
+  .btn-ghost { background: var(--gray-100); color: var(--gray-600); }
+  .btn-ghost:hover { background: var(--gray-200); }
+  .btn-primary { background: var(--teal); color: white; }
+  .btn-primary:hover { background: var(--teal-light); }
+  .btn-danger { background: #FEF0EF; color: var(--red); }
+  .btn-danger:hover { background: #FDDCDA; }
+
+  /* ===== TABS ===== */
+  .tabs {
+    display: flex;
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+  .tab {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-400);
+    cursor: pointer;
+    border-bottom: 2.5px solid transparent;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .tab.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 700; }
+  .tab:hover:not(.active) { color: var(--gray-600); }
+
+  /* ===== CONTENT ===== */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* ===== FORM ===== */
+  .karte-section {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 14px 20px;
+    background: var(--teal);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .section-body { padding: 16px 20px; }
+
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .field-full { grid-column: 1 / -1; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; position: relative; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--gray-600); letter-spacing: 0.3px; }
+  .field input, .field select, .field textarea {
+    padding: 10px 12px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    background: var(--cream);
+    transition: border .15s, box-shadow .15s;
+    color: var(--gray-800);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(42,123,123,0.12);
+    background: var(--white);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  .zip-row { display: flex; gap: 8px; align-items: flex-end; }
+  .zip-row input { flex: 1; }
+  .btn-zip {
+    padding: 10px 14px;
+    background: var(--teal-pale);
+    color: var(--teal);
+    border: 1.5px solid var(--teal);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .2s;
+  }
+  .btn-zip:hover { background: var(--teal); color: white; }
+
+  .radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .radio-label {
+    display: flex; align-items: center; gap: 5px;
+    padding: 8px 14px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all .2s;
+    background: var(--cream);
+  }
+  .radio-label input { display: none; }
+  .radio-label:has(input:checked), .radio-label.checked {
+    background: var(--teal);
+    color: white;
+    border-color: var(--teal);
+  }
+
+  .pain-map {
+    width: 100%;
+    max-width: 340px;
+    height: 220px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px;
+    background: #f0f8f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+    font-size: 13px;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+  .pain-dot {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--red);
+    opacity: 0.75;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: dotPop .2s ease;
+  }
+  @keyframes dotPop { from { transform: translate(-50%,-50%) scale(0); } to { transform: translate(-50%,-50%) scale(1); } }
+
+  /* ===== DRAWING CANVAS ===== */
+  .canvas-wrap {
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    background: white;
+    touch-action: none;
+  }
+  .canvas-toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
+    flex-wrap: wrap;
+  }
+  .color-btn {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2.5px solid transparent;
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  .color-btn.active, .color-btn:hover { border-color: var(--teal); transform: scale(1.2); }
+  .size-btn {
+    padding: 4px 10px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    background: white;
+    transition: all .15s;
+  }
+  .size-btn.active { background: var(--teal); color: white; border-color: var(--teal); }
+  .canvas-wrap canvas { display: block; width: 100%; cursor: crosshair; }
+  .tool-divider { width: 1px; height: 20px; background: var(--gray-200); margin: 0 2px; }
+
+  /* ===== PHOTOS ===== */
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  .photo-slot {
+    aspect-ratio: 1;
+    border: 2px dashed var(--gray-200);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .2s;
+    color: var(--gray-400);
+    font-size: 11px;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+    background: var(--cream);
+  }
+  .photo-slot:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-pale); }
+  .photo-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+  .photo-del {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px; height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .photo-slot:hover .photo-del { display: flex; }
+  #photoInput { display: none; }
+
+  /* ===== VISIT HISTORY ===== */
+  .visit-item {
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: var(--cream);
+    transition: box-shadow .2s;
+  }
+  .visit-item:hover { box-shadow: var(--shadow-sm); }
+  .visit-date { font-size: 12px; color: var(--teal); font-weight: 700; margin-bottom: 6px; }
+  .visit-note { font-size: 13px; color: var(--gray-600); line-height: 1.6; }
+
+  /* ===== SETTINGS ===== */
+  .settings-list { display: flex; flex-direction: column; gap: 8px; }
+  .settings-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    background: var(--cream);
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px;
+  }
+  .settings-item input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    color: var(--gray-800);
+  }
+  .drag-handle { color: var(--gray-400); cursor: grab; font-size: 16px; }
+  .btn-icon {
+    width: 30px; height: 30px;
+    border: none; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all .15s;
+  }
+  .btn-icon-del { background: #FEF0EF; color: var(--red); }
+  .btn-icon-del:hover { background: var(--red); color: white; }
+  .btn-add-field {
+    padding: 12px;
+    border: 2px dashed var(--gray-200);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--gray-400);
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+    transition: all .2s;
+    font-family: inherit;
+  }
+  .btn-add-field:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--gray-400);
+    gap: 12px;
+    text-align: center;
+  }
+  .empty-icon { font-size: 52px; opacity: 0.4; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 28px;
+    width: min(480px, 92vw);
+    box-shadow: var(--shadow-lg);
+    animation: modalIn .2s ease;
+  }
+  @keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal h3 { font-size: 18px; margin-bottom: 16px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--gray-800);
+    color: white;
+    padding: 10px 22px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: all .3s;
+    z-index: 999;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== BADGE ===== */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-teal { background: var(--teal-pale); color: var(--teal); }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 240px; min-width: 240px; }
+    .field-grid { grid-template-columns: 1fr; }
+    .field-grid-3 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-area" onclick="document.getElementById('logoUploadInput').click()" title="ロゴをタップして変更">
+        <div class="logo-img" id="logoDisplay">ロゴ</div>
+        <div>
+          <div class="clinic-name" id="clinicNameDisplay">整体院</div>
+          <div class="clinic-sub">電子カルテシステム</div>
+        </div>
+      </div>
+      <input type="file" id="logoUploadInput" accept="image/*">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="患者名・カナで検索..." oninput="filterPatients()">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+    <div class="patient-list" id="patientList"></div>
+    
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">患者を選択してください</div>
+      <div class="topbar-actions" id="topbarActions" style="display:none">
+        <button class="btn btn-ghost" onclick="addVisit()">📝 来院記録追加</button>
+        <button class="btn btn-primary" onclick="saveKarte()">💾 保存</button>
+        <button class="btn btn-danger" onclick="deletePatient()">🗑 削除</button>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabBar" style="display:none">
+      <div class="tab active" onclick="switchTab('basic',this)">基本情報</div>
+      <div class="tab" onclick="switchTab('counsel',this)">カウンセリング</div>
+      <div class="tab" onclick="switchTab('draw',this)">手書きメモ</div>
+      <div class="tab" onclick="switchTab('photos',this)">写真</div>
+      <div class="tab" onclick="switchTab('history',this)">来院履歴</div>
+      <div class="tab" onclick="switchTab('settings',this)">⚙ 項目設定</div>
+    </div>
+
+    <div class="content" id="mainContent">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div style="font-size:16px;font-weight:600;color:var(--gray-600)">患者を選択するか<br>新規登録してください</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ADD VISIT MODAL -->
+<div class="modal-overlay" id="visitModal">
+  <div class="modal">
+    <h3>📝 来院記録</h3>
+    <div class="field" style="margin-bottom:12px">
+      <label>来院日</label>
+      <input type="date" id="visitDate">
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>施術内容・カウンセリングメモ</label>
+      <textarea id="visitNote" style="min-height:120px" placeholder="症状の変化、施術内容、患者さんのご様子など..."></textarea>
+    </div>
+    <div class="field">
+      <label>次回予約</label>
+      <input type="date" id="visitNext">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveVisit()">記録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGO/CLINIC NAME MODAL -->
+<div class="modal-overlay" id="clinicModal">
+  <div class="modal">
+    <h3>🏥 クリニック設定</h3>
+    <div class="field" style="margin-bottom:12px">
+      <label>院名</label>
+      <input type="text" id="clinicNameInput" placeholder="整体院〇〇">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('clinicModal').classList.remove('open')">閉じる</button>
+      <button class="btn btn-primary" onclick="saveClinicName()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- 浮かせた新規登録ボタン -->
+<button onclick="newPatient()" style="position:fixed;bottom:32px;right:32px;z-index:500;width:64px;height:64px;border-radius:50%;background:var(--teal);color:white;border:none;font-size:28px;box-shadow:0 4px 20px rgba(42,123,123,0.45);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="新規患者登録">➕</button>
+
+<script>
+// ===== SUPABASE =====
+const SUPABASE_URL = 'https://mezrvigfzmrzqbgiednn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lenJ2aWdmem1yenFiZ2llZG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4OTY2NDgsImV4cCI6MjA5NzQ3MjY0OH0.ZuzCjLNvLVhoDcq4H9CjyJMPG8gcZfkdV6x8JbEVUw8';
+
+const HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal'
+};
+
+const sb = {
+  async get(table, filter = '') {
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/${table}?order=updated_at.desc${filter}`;
+      const r = await fetch(url, { headers: HEADERS });
+      if (!r.ok) { console.error('GET error', await r.text()); return []; }
+      return r.json();
+    } catch(e) { console.error('GET exception', e); return []; }
+  },
+  async upsert(table, data) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+        method: 'POST',
+        headers: { ...HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(data)
+      });
+      if (!r.ok) { const t = await r.text(); console.error('UPSERT error', t); showToast('保存エラー: ' + t.slice(0,80)); return false; }
+      return true;
+    } catch(e) { console.error('UPSERT exception', e); return false; }
+  },
+  async delete(table, id) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: HEADERS
+      });
+      return r.ok;
+    } catch(e) { return false; }
+  },
+  async getSetting(key) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.${key}`, { headers: HEADERS });
+      const d = await r.json();
+      return d[0]?.value || null;
+    } catch(e) { return null; }
+  },
+  async setSetting(key, value) {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+        method: 'POST',
+        headers: { ...HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ key, value })
+      });
+    } catch(e) { console.error('setSetting error', e); }
+  }
+};
+
+// ===== STATE =====
+let patients = [];
+let currentId = null;
+let currentTab = 'basic';
+let drawCtx = null;
+let isDrawing = false;
+let lastX = 0, lastY = 0;
+let drawColor = '#2A7B7B';
+let drawSize = 3;
+let eraserMode = false;
+
+let customFields = [
+  { id: 'cf1', label: '職業', type: 'text' },
+  { id: 'cf2', label: '紹介者', type: 'text' },
+  { id: 'cf4', label: '緊急連絡先', type: 'text' },
+];
+
+let clinicName = '整体院';
+let clinicLogo = '';
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', async () => {
+  showLoading(true);
+
+  // Supabaseから設定を読み込む
+  try {
+    const cn = await sb.getSetting('clinic_name').catch(()=>null);
+    if (cn) clinicName = cn;
+    const cl = await sb.getSetting('clinic_logo').catch(()=>null);
+    if (cl) clinicLogo = cl;
+    const cf = await sb.getSetting('custom_fields').catch(()=>null);
+    if (cf) { try { customFields = JSON.parse(cf); } catch(e){} }
+  } catch(e) { /* 初回起動時は設定なしで正常 */ }
+
+  document.getElementById('clinicNameDisplay').textContent = clinicName;
+  if (clinicLogo) {
+    const el = document.getElementById('logoDisplay');
+    el.innerHTML = `<img src="${clinicLogo}" style="width:100%;height:100%;border-radius:8px;object-fit:contain">`;
+  }
+
+  // 患者一覧をSupabaseから読み込む
+  try {
+    const rows = await sb.get('patients');
+    patients = rows.map(dbToPatient);
+  } catch(e) {
+    showToast('⚠️ データ読み込みエラー。接続を確認してください');
+  }
+
+  showLoading(false);
+
+  // logo upload
+  document.getElementById('logoUploadInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = async ev => {
+      clinicLogo = ev.target.result;
+      await sb.setSetting('clinic_logo', clinicLogo);
+      const el = document.getElementById('logoDisplay');
+      el.innerHTML = `<img src="${clinicLogo}" style="width:100%;height:100%;border-radius:8px;object-fit:contain">`;
+      showToast('ロゴを更新しました');
+    };
+    r.readAsDataURL(file);
+  });
+
+  // clinic name on logo click → show modal
+  document.querySelector('.logo-area').addEventListener('dblclick', e => {
+    document.getElementById('clinicNameInput').value = clinicName;
+    document.getElementById('clinicModal').classList.add('open');
+  });
+
+  renderPatientList();
+  setTodayDate();
+});
+
+// DBレコード→患者オブジェクト変換
+function dbToPatient(row) {
+  return {
+    id: row.id,
+    name: row.name || '',
+    kana: row.kana || '',
+    birthdate: row.birthdate || '',
+    gender: row.gender || '',
+    zip: row.zip || '',
+    address: row.address || '',
+    phone: row.phone || '',
+    email: row.email || '',
+    emergency: row.emergency || '',
+    complaint: row.complaint || '',
+    history: row.history || '',
+    allergy: row.allergy || '',
+    medicine: row.medicine || '',
+    counsel: row.counsel || '',
+    visits: row.visits || [],
+    photos: row.photos || [],
+    painDots: row.pain_dots || {},
+    drawData: row.draw_data || '',
+    custom: row.custom || {},
+  };
+}
+
+// 患者オブジェクト→DBレコード変換
+function patientToDb(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    kana: p.kana,
+    birthdate: p.birthdate,
+    gender: p.gender,
+    zip: p.zip,
+    address: p.address,
+    phone: p.phone,
+    email: p.email,
+    emergency: p.emergency,
+    complaint: p.complaint,
+    history: p.history,
+    allergy: p.allergy,
+    medicine: p.medicine,
+    counsel: p.counsel,
+    visits: p.visits || [],
+    photos: p.photos || [],
+    pain_dots: p.painDots || {},
+    draw_data: p.drawData || '',
+    custom: p.custom || {},
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function showLoading(show) {
+  let el = document.getElementById('loadingOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loadingOverlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.85);z-index:200;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-size:15px;color:var(--teal);font-weight:600;';
+    el.innerHTML = '<div style="font-size:32px">⏳</div><div>Supabaseに接続中...</div>';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+function setTodayDate() {
+  const today = new Date().toISOString().split('T')[0];
+  const el = document.getElementById('visitDate');
+  if (el) el.value = today;
+}
+
+// ===== PATIENTS =====
+function renderPatientList(filter='') {
+  const list = document.getElementById('patientList');
+  const lf = filter.toLowerCase();
+  const filtered = patients.filter(p =>
+    !lf || p.name?.includes(filter) || p.kana?.toLowerCase().includes(lf) || p.id?.toString().includes(lf)
+  );
+  list.innerHTML = filtered.length === 0
+    ? `<div style="padding:24px;text-align:center;color:var(--gray-400);font-size:13px">患者が見つかりません</div>`
+    : filtered.map(p => `
+      <div class="patient-item ${p.id===currentId?'active':''}" onclick="loadPatient('${p.id}')">
+        <div class="patient-avatar">${(p.name||'?')[0]}</div>
+        <div class="patient-info">
+          <div class="patient-name">${p.name||'名称未設定'}</div>
+          <div class="patient-meta">${p.kana||''} &nbsp;${p.birthdate?'生: '+p.birthdate:''}</div>
+        </div>
+      </div>`).join('');
+}
+
+function filterPatients() {
+  renderPatientList(document.getElementById('searchInput').value);
+}
+
+async function newPatient() {
+  const id = 'p' + Date.now();
+  const p = { id, name:'', kana:'', birthdate:'', gender:'', zip:'', address:'', phone:'', email:'', emergency:'', complaint:'', history:'', allergy:'', medicine:'', visits:[], photos:[], drawData:'', counsel:'', custom:{}, painDots:{} };
+  patients.unshift(p);
+  await sb.upsert('patients', patientToDb(p));
+  renderPatientList();
+  loadPatient(id);
+  showToast('新規患者を作成しました');
+}
+
+function loadPatient(id) {
+  currentId = id;
+  currentTab = 'basic';
+  document.getElementById('topbarActions').style.display = 'flex';
+  document.getElementById('tabBar').style.display = 'flex';
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  renderPatientList(document.getElementById('searchInput').value);
+  renderTab();
+}
+
+function getCurrentPatient() { return patients.find(p=>p.id===currentId); }
+
+async function saveKarte() {
+  collectFormData();
+  const p = getCurrentPatient();
+  if (!p) return;
+  showToast('保存中...');
+  const ok = await sb.upsert('patients', patientToDb(p));
+  showToast(ok ? 'カルテを保存しました ✓' : '⚠️ 保存に失敗しました');
+}
+
+function collectFormData() {
+  const p = getCurrentPatient();
+  if (!p) return;
+  const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  if (currentTab === 'basic') {
+    p.name = g('f_name'); p.kana = g('f_kana'); p.birthdate = g('f_birthdate');
+    p.gender = document.querySelector('.radio-label.checked')?.textContent?.trim() || p.gender;
+    p.zip = g('f_zip'); p.address = g('f_address'); p.phone = g('f_phone');
+    p.email = g('f_email'); p.emergency = g('f_emergency');
+    customFields.forEach(cf => { p.custom[cf.id] = g('cf_' + cf.id); });
+    document.getElementById('topbarTitle').textContent = p.name || '名称未設定';
+  }
+  if (currentTab === 'counsel') {
+    p.complaint = g('f_complaint'); p.history = g('f_history');
+    p.allergy = g('f_allergy'); p.medicine = g('f_medicine'); p.counsel = g('f_counsel');
+  }
+  if (currentTab === 'draw' && drawCtx) {
+    p.drawData = document.getElementById('drawCanvas')?.toDataURL() || p.drawData;
+  }
+}
+
+async function saveAll() {
+  await sb.setSetting('custom_fields', JSON.stringify(customFields));
+}
+
+async function deletePatient() {
+  if (!confirm('このカルテを削除しますか？この操作は元に戻せません。')) return;
+  await sb.delete('patients', currentId);
+  patients = patients.filter(p => p.id !== currentId);
+  currentId = null;
+  renderPatientList();
+  document.getElementById('topbarActions').style.display = 'none';
+  document.getElementById('tabBar').style.display = 'none';
+  document.getElementById('topbarTitle').textContent = '患者を選択してください';
+  document.getElementById('mainContent').innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div style="font-size:16px;font-weight:600;color:var(--gray-600)">患者を選択するか<br>新規登録してください</div></div>`;
+  showToast('カルテを削除しました');
+}
+
+// ===== TABS =====
+function switchTab(tab, el) {
+  collectFormData();
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderTab();
+}
+
+function renderTab() {
+  const p = getCurrentPatient();
+  if (!p) return;
+  document.getElementById('topbarTitle').textContent = p.name || '名称未設定';
+  if (currentTab === 'basic') renderBasic(p);
+  else if (currentTab === 'counsel') renderCounsel(p);
+  else if (currentTab === 'draw') renderDraw(p);
+  else if (currentTab === 'photos') renderPhotos(p);
+  else if (currentTab === 'history') renderHistory(p);
+  else if (currentTab === 'settings') renderSettings();
+}
+
+// ===== TAB: BASIC =====
+function renderBasic(p) {
+  const customFieldsHtml = customFields.map(cf => `
+    <div class="field">
+      <label>${cf.label}</label>
+      <input type="text" id="cf_${cf.id}" value="${p.custom[cf.id]||''}">
+    </div>`).join('');
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="karte-section">
+      <div class="section-header">🧑 基本情報</div>
+      <div class="section-body">
+        <div class="field-grid">
+          <div class="field"><label>氏名</label><input type="text" id="f_name" value="${p.name||''}" placeholder="山田 太郎" oninput="document.getElementById('topbarTitle').textContent=this.value||'名称未設定'"></div>
+          <div class="field"><label>フリガナ</label><input type="text" id="f_kana" value="${p.kana||''}" placeholder="ヤマダ タロウ"></div>
+          <div class="field"><label>生年月日</label><input type="date" id="f_birthdate" value="${p.birthdate||''}"></div>
+          <div class="field">
+            <label>性別</label>
+            <div class="radio-group" id="genderGroup">
+              ${['男性','女性','その他'].map(g=>`<label class="radio-label ${p.gender===g?'checked':''}" onclick="selectGender(this,'${g}')">${g}</label>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="karte-section">
+      <div class="section-header">📍 連絡先</div>
+      <div class="section-body">
+        <div class="field-grid">
+          <div class="field">
+            <label>郵便番号</label>
+            <div class="zip-row">
+              <input type="text" id="f_zip" value="${p.zip||''}" placeholder="123-4567" maxlength="8" oninput="formatZip(this)">
+              <button class="btn-zip" onclick="lookupZip()">住所を検索</button>
+            </div>
+          </div>
+          <div class="field"><label>電話番号</label><input type="tel" id="f_phone" value="${p.phone||''}" placeholder="090-0000-0000"></div>
+          <div class="field field-full"><label>住所</label><input type="text" id="f_address" value="${p.address||''}" placeholder="都道府県・市区町村・番地"></div>
+          <div class="field"><label>メールアドレス</label><input type="email" id="f_email" value="${p.email||''}" placeholder="example@email.com"></div>
+          <div class="field"><label>緊急連絡先</label><input type="text" id="f_emergency" value="${p.emergency||''}" placeholder="氏名・続柄・電話番号"></div>
+        </div>
+      </div>
+    </div>
+
+    ${customFields.length > 0 ? `
+    <div class="karte-section">
+      <div class="section-header">📌 追加情報</div>
+      <div class="section-body">
+        <div class="field-grid">${customFieldsHtml}</div>
+      </div>
+    </div>` : ''}
+  `;
+}
+
+function selectGender(el, val) {
+  document.querySelectorAll('#genderGroup .radio-label').forEach(l => l.classList.remove('checked'));
+  el.classList.add('checked');
+  getCurrentPatient().gender = val;
+}
+
+function formatZip(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (v.length > 3) v = v.slice(0,3) + '-' + v.slice(3,7);
+  el.value = v;
+}
+
+async function lookupZip() {
+  const zip = document.getElementById('f_zip')?.value.replace('-','');
+  if (zip.length !== 7) { showToast('7桁の郵便番号を入力してください'); return; }
+  showToast('住所を検索中...');
+  try {
+    const res = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`);
+    const data = await res.json();
+    if (data.results) {
+      const r = data.results[0];
+      const addr = r.address1 + r.address2 + r.address3;
+      document.getElementById('f_address').value = addr;
+      getCurrentPatient().address = addr;
+      showToast('住所を入力しました ✓');
+    } else {
+      showToast('住所が見つかりませんでした');
+    }
+  } catch {
+    showToast('通信エラー。再度お試しください');
+  }
+}
+
+// ===== TAB: COUNSEL =====
+function renderCounsel(p) {
+  document.getElementById('mainContent').innerHTML = `
+    <div class="karte-section">
+      <div class="section-header">🩺 主訴・来院理由</div>
+      <div class="section-body">
+        <div class="field"><label>主訴（一番つらい症状）</label>
+          <textarea id="f_complaint" placeholder="例: 3ヶ月前から右肩が痛い。腕を上げると痛みが走る。">${p.complaint||''}</textarea></div>
+      </div>
+    </div>
+    <div class="karte-section">
+      <div class="section-header">📋 既往歴・生活歴</div>
+      <div class="section-body">
+        <div class="field-grid">
+          <div class="field"><label>既往歴・手術歴</label>
+            <textarea id="f_history" placeholder="過去の病気・手術・入院歴など">${p.history||''}</textarea></div>
+          <div class="field"><label>アレルギー</label>
+            <textarea id="f_allergy" placeholder="薬・食物・その他アレルギー">${p.allergy||''}</textarea></div>
+          <div class="field field-full"><label>現在服用中のお薬</label>
+            <textarea id="f_medicine" placeholder="薬名・用法など">${p.medicine||''}</textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="karte-section">
+      <div class="section-header">✏️ 本日のカウンセリング内容</div>
+      <div class="section-body">
+        <div class="field">
+          <label>カウンセリングメモ（本日の状態・施術方針・患者さんの話など）</label>
+          <textarea id="f_counsel" style="min-height:160px" placeholder="本日の状態、気になる点、患者さんのご要望、施術の方向性など自由にメモしてください...">${p.counsel||''}</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="karte-section">
+      <div class="section-header">🗺️ 痛みの部位マップ <span style="font-size:11px;opacity:0.8">（タップで痛み箇所をマーク）</span></div>
+      <div class="section-body" style="display:flex;gap:16px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;color:var(--gray-400);margin-bottom:6px">前面</div>
+          <div class="pain-map" id="painFront" onclick="addPainDot(this,event,'front')" style="background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 160%22><ellipse cx=%2250%22 cy=%2220%22 rx=%2218%22 ry=%2220%22 fill=%22%23e0eeee%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2230%22 y=%2238%22 width=%2240%22 height=%2260%22 rx=%228%22 fill=%22%23d4eaea%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2212%22 y=%2240%22 width=%2218%22 height=%2248%22 rx=%226%22 fill=%22%23cde8e8%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2270%22 y=%2240%22 width=%2218%22 height=%2248%22 rx=%226%22 fill=%22%23cde8e8%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2233%22 y=%2298%22 width=%2216%22 height=%2258%22 rx=%226%22 fill=%22%23d4eaea%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2251%22 y=%2298%22 width=%2216%22 height=%2258%22 rx=%226%22 fill=%22%23d4eaea%22 stroke=%22%23acd%22 stroke-width=%221%22/></svg>') center/contain no-repeat #f0f8f8"
+            id="painDotsFront">${renderPainDots(p,'front')}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--gray-400);margin-bottom:6px">背面</div>
+          <div class="pain-map" id="painBack" onclick="addPainDot(this,event,'back')"
+            style="background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 160%22><ellipse cx=%2250%22 cy=%2220%22 rx=%2218%22 ry=%2220%22 fill=%22%23e0eeee%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2230%22 y=%2238%22 width=%2240%22 height=%2260%22 rx=%228%22 fill=%22%23c8e4e4%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2212%22 y=%2240%22 width=%2218%22 height=%2248%22 rx=%226%22 fill=%22%23bde0e0%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2270%22 y=%2240%22 width=%2218%22 height=%2248%22 rx=%226%22 fill=%22%23bde0e0%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2233%22 y=%2298%22 width=%2216%22 height=%2258%22 rx=%226%22 fill=%22%23c8e4e4%22 stroke=%22%23acd%22 stroke-width=%221%22/><rect x=%2251%22 y=%2298%22 width=%2216%22 height=%2258%22 rx=%226%22 fill=%22%23c8e4e4%22 stroke=%22%23acd%22 stroke-width=%221%22/></svg>') center/contain no-repeat #f0f8f8"
+            id="painDotsBack">${renderPainDots(p,'back')}</div>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-ghost" onclick="clearPainDots()" style="margin-bottom:2px">マークを消去</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPainDots(p, side) {
+  if (!p.painDots) return '';
+  return (p.painDots[side]||[]).map(d=>`<div class="pain-dot" style="left:${d.x}%;top:${d.y}%"></div>`).join('');
+}
+
+function addPainDot(el, e, side) {
+  const rect = el.getBoundingClientRect();
+  const x = ((e.clientX-rect.left)/rect.width*100).toFixed(1);
+  const y = ((e.clientY-rect.top)/rect.height*100).toFixed(1);
+  const p = getCurrentPatient();
+  if (!p.painDots) p.painDots = {};
+  if (!p.painDots[side]) p.painDots[side] = [];
+  p.painDots[side].push({x,y});
+  const dot = document.createElement('div');
+  dot.className = 'pain-dot';
+  dot.style.left = x+'%'; dot.style.top = y+'%';
+  el.appendChild(dot);
+}
+
+function clearPainDots() {
+  const p = getCurrentPatient();
+  p.painDots = {};
+  ['painFront','painBack'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.querySelectorAll('.pain-dot').forEach(d=>d.remove());
+  });
+}
+
+// ===== TAB: DRAW =====
+function renderDraw(p) {
+  document.getElementById('mainContent').innerHTML = `
+    <div class="karte-section">
+      <div class="section-header">✏️ 手書きメモ（Apple Pencil / タッチ対応）</div>
+      <div class="section-body" style="padding:0">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <span style="font-size:12px;color:var(--gray-600);font-weight:600">色:</span>
+            ${['#2A7B7B','#2C2C2A','#C0392B','#E67E22','#27AE60','#8E44AD','#FFFFFF'].map(c=>`
+              <div class="color-btn ${drawColor===c?'active':''}" style="background:${c};${c==='#FFFFFF'?'border:2px solid #ccc':''}" onclick="setDrawColor('${c}',this)"></div>`).join('')}
+            <div class="tool-divider"></div>
+            <span style="font-size:12px;color:var(--gray-600);font-weight:600">太さ:</span>
+            ${[2,4,8,16].map(s=>`<button class="size-btn ${drawSize===s?'active':''}" onclick="setDrawSize(${s},this)">${s}</button>`).join('')}
+            <div class="tool-divider"></div>
+            <button class="size-btn ${eraserMode?'active':''}" id="eraserBtn" onclick="toggleEraser(this)">消しゴム</button>
+            <button class="size-btn" onclick="clearCanvas()">全消去</button>
+            <button class="size-btn" onclick="saveDrawing()" style="margin-left:auto">💾 保存</button>
+          </div>
+          <canvas id="drawCanvas" width="1200" height="700" style="touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+  initCanvas(p);
+}
+
+function initCanvas(p) {
+  const canvas = document.getElementById('drawCanvas');
+  if (!canvas) return;
+  drawCtx = canvas.getContext('2d');
+  drawCtx.lineCap = 'round';
+  drawCtx.lineJoin = 'round';
+  if (p.drawData) {
+    const img = new Image();
+    img.onload = () => drawCtx.drawImage(img, 0, 0);
+    img.src = p.drawData;
+  }
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    isDrawing = true;
+    const pos = getPos(e);
+    lastX = pos.x; lastY = pos.y;
+    drawCtx.beginPath();
+    drawCtx.moveTo(lastX, lastY);
+  }
+  function draw(e) {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const pos = getPos(e);
+    if (eraserMode) {
+      drawCtx.globalCompositeOperation = 'destination-out';
+      drawCtx.lineWidth = drawSize * 8;
+    } else {
+      drawCtx.globalCompositeOperation = 'source-over';
+      drawCtx.strokeStyle = drawColor;
+      drawCtx.lineWidth = drawSize;
+    }
+    drawCtx.lineTo(pos.x, pos.y);
+    drawCtx.stroke();
+    drawCtx.beginPath();
+    drawCtx.moveTo(pos.x, pos.y);
+    lastX = pos.x; lastY = pos.y;
+  }
+  function endDraw(e) { e.preventDefault(); isDrawing = false; drawCtx.beginPath(); }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', draw, {passive:false});
+  canvas.addEventListener('touchend', endDraw, {passive:false});
+}
+
+function setDrawColor(c, el) {
+  drawColor = c;
+  eraserMode = false;
+  document.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('eraserBtn').classList.remove('active');
+  if (drawCtx) drawCtx.globalCompositeOperation = 'source-over';
+}
+function setDrawSize(s, el) {
+  drawSize = s;
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+function toggleEraser(el) {
+  eraserMode = !eraserMode;
+  el.classList.toggle('active', eraserMode);
+}
+function clearCanvas() {
+  if (!drawCtx || !confirm('キャンバスを消去しますか？')) return;
+  const canvas = document.getElementById('drawCanvas');
+  drawCtx.clearRect(0,0,canvas.width,canvas.height);
+  drawCtx.globalCompositeOperation = 'source-over';
+}
+async function saveDrawing() {
+  const canvas = document.getElementById('drawCanvas');
+  if (!canvas) return;
+  const p = getCurrentPatient();
+  p.drawData = canvas.toDataURL();
+  showToast('保存中...');
+  const ok = await sb.upsert('patients', patientToDb(p));
+  showToast(ok ? '手書きメモを保存しました ✓' : '⚠️ 保存に失敗しました');
+}
+
+// ===== TAB: PHOTOS =====
+function renderPhotos(p) {
+  const photosHtml = (p.photos||[]).map((src,i)=>`
+    <div class="photo-slot">
+      <img src="${src}">
+      <button class="photo-del" onclick="deletePhoto(${i},event)">✕</button>
+    </div>`).join('');
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="karte-section">
+      <div class="section-header">📷 施術写真・資料</div>
+      <div class="section-body">
+        <div class="photo-grid" id="photoGrid">
+          ${photosHtml}
+          <div class="photo-slot" onclick="document.getElementById('photoInput').click()">
+            <span style="font-size:28px">＋</span>
+            <span>写真を追加</span>
+          </div>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" multiple onchange="addPhotos(this)">
+        <p style="font-size:12px;color:var(--gray-400);margin-top:12px">📌 カメラで撮影した写真やX線画像などを添付できます</p>
+      </div>
+    </div>
+  `;
+}
+
+function addPhotos(input) {
+  const p = getCurrentPatient();
+  if (!p.photos) p.photos = [];
+  Array.from(input.files).forEach(file => {
+    const r = new FileReader();
+    r.onload = async e => {
+      p.photos.push(e.target.result);
+      await sb.upsert('patients', patientToDb(p));
+      renderPhotos(p);
+      showToast('写真を追加しました');
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+async function deletePhoto(idx, e) {
+  e.stopPropagation();
+  const p = getCurrentPatient();
+  p.photos.splice(idx,1);
+  await sb.upsert('patients', patientToDb(p));
+  renderPhotos(p);
+}
+
+// ===== TAB: HISTORY =====
+function renderHistory(p) {
+  const visits = (p.visits||[]).slice().reverse();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="karte-section">
+      <div class="section-header">📅 来院記録 <span class="badge badge-teal">${visits.length}件</span></div>
+      <div class="section-body">
+        ${visits.length === 0
+          ? `<div style="text-align:center;color:var(--gray-400);padding:32px;font-size:14px">来院記録がありません<br><small>右上の「来院記録追加」ボタンから追加できます</small></div>`
+          : visits.map((v,i)=>`
+            <div class="visit-item">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <div class="visit-date">📅 ${v.date} ${v.next?'｜次回: '+v.next:''}</div>
+                <button class="btn-icon btn-icon-del" onclick="deleteVisit(${visits.length-1-i})">✕</button>
+              </div>
+              <div class="visit-note">${(v.note||'').replace(/\n/g,'<br>')}</div>
+            </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function addVisit() {
+  document.getElementById('visitModal').classList.add('open');
+  setTodayDate();
+  document.getElementById('visitNote').value = '';
+  document.getElementById('visitNext').value = '';
+}
+function closeModal() { document.getElementById('visitModal').classList.remove('open'); }
+async function saveVisit() {
+  const p = getCurrentPatient();
+  if (!p.visits) p.visits = [];
+  p.visits.push({
+    date: document.getElementById('visitDate').value,
+    note: document.getElementById('visitNote').value,
+    next: document.getElementById('visitNext').value,
+  });
+  await sb.upsert('patients', patientToDb(p));
+  closeModal();
+  showToast('来院記録を追加しました ✓');
+  if (currentTab === 'history') renderHistory(p);
+}
+async function deleteVisit(idx) {
+  const p = getCurrentPatient();
+  p.visits.splice(idx,1);
+  await sb.upsert('patients', patientToDb(p));
+  renderHistory(p);
+}
+
+// ===== TAB: SETTINGS =====
+function renderSettings() {
+  document.getElementById('mainContent').innerHTML = `
+    <div class="karte-section">
+      <div class="section-header">🏥 クリニック設定</div>
+      <div class="section-body">
+        <div class="field-grid">
+          <div class="field">
+            <label>院名</label>
+            <input type="text" id="set_clinic" value="${clinicName}" placeholder="整体院〇〇">
+          </div>
+          <div class="field">
+            <label>ロゴマーク</label>
+            <button class="btn-ghost btn" onclick="document.getElementById('logoUploadInput').click()">📁 ロゴ画像をアップロード</button>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn btn-primary" onclick="saveClinicSettings()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="karte-section">
+      <div class="section-header">📌 追加情報の項目管理</div>
+      <div class="section-body">
+        <p style="font-size:12px;color:var(--gray-400);margin-bottom:14px">「基本情報」タブに表示する追加項目を自由に編集できます</p>
+        <div class="settings-list" id="customFieldList">
+          ${customFields.map((cf,i)=>`
+            <div class="settings-item" data-id="${cf.id}">
+              <span class="drag-handle">⠿</span>
+              <input type="text" value="${cf.label}" onchange="updateFieldLabel('${cf.id}',this.value)" placeholder="項目名">
+              <button class="btn-icon btn-icon-del" onclick="removeField('${cf.id}')">✕</button>
+            </div>`).join('')}
+        </div>
+        <button class="btn-add-field" onclick="addField()" style="margin-top:10px">＋ 項目を追加</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveClinicSettings() {
+  clinicName = document.getElementById('set_clinic').value || '整体院';
+  await sb.setSetting('clinic_name', clinicName);
+  document.getElementById('clinicNameDisplay').textContent = clinicName;
+  showToast('設定を保存しました ✓');
+}
+async function saveClinicName() {
+  clinicName = document.getElementById('clinicNameInput').value || '整体院';
+  await sb.setSetting('clinic_name', clinicName);
+  document.getElementById('clinicNameDisplay').textContent = clinicName;
+  document.getElementById('clinicModal').classList.remove('open');
+  showToast('院名を更新しました ✓');
+}
+
+async function updateFieldLabel(id, val) {
+  const f = customFields.find(f=>f.id===id);
+  if (f) { f.label = val; await saveAll(); }
+}
+async function removeField(id) {
+  customFields = customFields.filter(f=>f.id!==id);
+  await saveAll();
+  renderSettings();
+}
+async function addField() {
+  customFields.push({ id: 'cf'+Date.now(), label: '新しい項目', type: 'text' });
+  await saveAll();
+  renderSettings();
+  setTimeout(()=>{
+    const inputs = document.querySelectorAll('.settings-item input');
+    if (inputs.length) inputs[inputs.length-1].focus();
+  }, 50);
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
