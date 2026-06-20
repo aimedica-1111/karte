@@ -386,7 +386,7 @@
     align-items: center;
     justify-content: center;
   }
-  .photo-slot:hover .photo-del { display: flex; }
+  .photo-slot .photo-del { display: flex; }
   #photoInput { display: none; }
 
   /* ===== VISIT HISTORY ===== */
@@ -908,7 +908,16 @@ async function cleanupEmpty() {
 }
 
 async function deletePatient() {
-  if (!confirm('このカルテを削除しますか？この操作は元に戻せません。')) return;
+  if (!confirm('このカルテを削除しますか？写真データも含めて完全に削除されます。')) return;
+  // 写真をSupabaseストレージから削除
+  const p = getCurrentPatient();
+  if (p && p.photoKeys && p.photoKeys.length > 0) {
+    for (const key of p.photoKeys) {
+      await fetch(`${SUPABASE_URL}/storage/v1/object/photos/${key}`, {
+        method: 'DELETE', headers: HEADERS
+      }).catch(()=>{});
+    }
+  }
   await sb.delete('patients', currentId);
   patients = patients.filter(p => p.id !== currentId);
   currentId = null;
@@ -1271,10 +1280,12 @@ function addPhotos(input) {
 
 async function deletePhoto(idx, e) {
   e.stopPropagation();
+  if (!confirm('この写真を削除しますか？')) return;
   const p = getCurrentPatient();
   p.photos.splice(idx,1);
   await sb.upsert('patients', patientToDb(p));
   renderPhotos(p);
+  showToast('写真を削除しました');
 }
 
 // ===== TAB: HISTORY =====
