@@ -386,7 +386,9 @@
     align-items: center;
     justify-content: center;
   }
-  .photo-slot .photo-del { display: flex; }
+  .photo-slot .photo-del { display: none; }
+  .photo-slot.selected .photo-del { display: flex; }
+  .photo-slot.selected { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(42,123,123,0.2); }
   #photoInput { display: none; }
 
   /* ===== VISIT HISTORY ===== */
@@ -1242,7 +1244,7 @@ async function saveDrawing() {
 // ===== TAB: PHOTOS =====
 function renderPhotos(p) {
   const photosHtml = (p.photos||[]).map((src,i)=>`
-    <div class="photo-slot">
+    <div class="photo-slot" onclick="selectPhoto(this,${i})" title="タップで選択、もう一度タップで削除">
       <img src="${src}">
       <button class="photo-del" onclick="deletePhoto(${i},event)">✕</button>
     </div>`).join('');
@@ -1296,6 +1298,13 @@ async function addPhotos(input) {
   await sb.upsert('patients', patientToDb(p));
   renderPhotos(p);
   showToast('写真を追加しました ✓');
+}
+
+function selectPhoto(el, idx) {
+  const wasSelected = el.classList.contains('selected');
+  // 他の選択を解除
+  document.querySelectorAll('.photo-slot').forEach(s => s.classList.remove('selected'));
+  if (!wasSelected) el.classList.add('selected');
 }
 
 async function deletePhoto(idx, e) {
